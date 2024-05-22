@@ -15,27 +15,39 @@ def _pitch(note, duration, Fs=SAMPLING_FREQUENCY):
     t = np.arange(duration * Fs) / Fs
     # Recall simple Harmonic motion sin(wt) where angular frequency(w) = 2*pi*f
     # sin(wt) = sin(2*pi*note_frequency*t)
-    return np.sin(2 * np.pi * t * freq[note])
+    f = _adjust_note_frequency(note)
+    y = np.sin(2 * np.pi * t * f)
+    # 
+    for i in range(2,131072, 1024):
+        # y += pow(2, -i) *  np.sin(2 * np.pi * f * (i) * t)
+        # if i % 2:  
+        y += pow(2, -i) *  np.sin(2 * np.pi * f / (i+1) * t)  
+
+    return y * 0.5
+
+def _adjust_note_frequency(note):
+    """Adjust notes based on 4th octave notes"""
+    name,octave = note[0], int(note[1])
+    return freq[name + '4'] * pow(2, octave - 4)
+
 
 def _riff(notes, Fs=SAMPLING_FREQUENCY):
     """Convert standard pitch notes and durations into list of waves"""
     # return wave
-    return np.array([_pitch(x[0], x[1], Fs) for x in notes])
+    return np.array([_pitch(note, duration, Fs) for note,duration in notes])
 
 def sing(song, Fs=SAMPLING_FREQUENCY):
     """Play sequence of notes from standard pitch notation and duration data"""
+
     for riff in _riff(song, Fs):
+        print(riff)
         sd.play(riff, Fs)
         sd.wait()
 
-
-
-
 def main():
-    song = zip(["C4", "D4", "E4", "F4", "G4", "A4", "B4"], [0.5]*7)
-
+    song = zip(["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"], [2]*8)
     sing(song)
-
+  
 
 if __name__ == "__main__":
     main()
