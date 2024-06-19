@@ -1,45 +1,51 @@
 import sounddevice as sd
 import numpy as np
-import matplotlib.pyplot as plt
 # Samples per second
 SAMPLING_FREQUENCY = 44100
 
-
-funky_town_rhythm = [
-    ('C3',0.25), ('C4', 0.25),('C3',0.25), ('C4', 0.25),('C3',0.25), ('C4', 0.25),
-]
-
 funky_town_riff = [
-    [('C5', 0.25), ('C3',0.25)], [('C5', 0.25), ('C4', 0.25)], [('A#4', 0.25),('C3',0.25)], [('C5', 0.5),('C4', 0.25)], ('G4', 0.5), ('G4', 0.25), ('C5', 0.25), ('F5', 0.25), ('E5', 0.25), ('C5', 0.75)
+    [('C5', 0.25), ('C3',0.25)], [('C5', 0.25), ('C4', 0.25)], [('A#4', 0.25),('C3',0.25)], [('C5', 0.5),('C4', 0.25), ('C3', 0.3)],  
+    [('G4', 0.5),('C4',0.25), ('C3', 0.3)], [('G4', 0.25), ('C4', 0.25)], [('C5', 0.25), ('C3', 0.25)], [('F5', 0.25),('C4', 0.25)], 
+    [('E5', 0.25),('C3', 0.25)], [('C5', 0.75), ('C4', 0.2)]
 ]
 
 funky_town_melody = [
-    ('C4', 0.5), ('C4', 0.25), ('C4', 0.25), ('C4', 0.3), ('E4', 0.5), ('E4', 0.25), ('E4', 0.3), ('G4', 0.4), ('G4', 0.4), ('E5', 0.4), ('S', 0.1), ('D4', 0.3), ('C5', 0.5)
+    ('C4', 0.5), ('C4', 0.25), ('C4', 0.25), ('E4', 0.5), ('E4', 0.25), ('E4', 0.3), ('G4', 0.4), ('G4', 0.4), ('E5', 0.4), ('S', 0.05), ('D4', 0.3), ('C5', 0.5)
 ]
 
+funky_town_melody_two = [
+    ('C5', 0.25), 
+    [('D5', 0.25), ('F5', 0.25)],  [('D5', 0.25), ('F5', 0.25)], [('D5', 0.3), ('F5', 0.3)],  [('D5', 0.25), ('F5', 0.25)],   
+    [('C5', 0.25), ('E5', 0.25)], [('C5', 0.25), ('E5', 0.25)], [('C5', 0.3), ('E5', 0.3)], [('C5', 0.25), ('E5', 0.25)],   
+    [('B4', 0.25),('D5', 0.25)], [('B4', 0.25),('D5', 0.25)], [('B4', 0.3),('D5', 0.3)], [('B4', 0.25),('D5', 0.25)],  
+    [('A4', 0.25), ('C5', 0.25)], [('A4', 0.25), ('C5', 0.25)],  [('A4', 0.3), ('C5', 0.3)], [('A4', 0.4), ('B4', 0.4)]
+]
+
+funky_town_melody_alt = [
+    [('E4', 0.3),('D4', 0.3), ('B3', 0.3)], [('E4', 0.3),('D4', 0.3), ('B3', 0.3) ], [('E4', 0.3),('D4', 0.3), ('B3', 0.3) ], [('E4', 0.3),('D4', 0.3), ('B3', 0.3) ], 
+
+]
+
+funky_town_song = (funky_town_riff + [('S', 0.3)] + funky_town_riff + [('S', 0.4)] + funky_town_melody + funky_town_riff + 
+                   funky_town_melody + funky_town_riff + funky_town_melody_two)
 
 # Base note frequencies
 freq = {"C4": 261.6256, "C#4": 277.1826, "D4": 293.6648, "D#4" : 311.1270, "E4": 329.6276, "F4": 349.2282, "F#4": 369.9944,"G4":391.9954 , "G#4": 415.3047, "A4": 440.0000, "A#4": 466.1638, "B4": 493.8833, "S": 0}
 
-def _pitch(note, duration, Fs=SAMPLING_FREQUENCY, volume=0.4):
-    """Produce sine wave that corresponds to given note and duration
-    
-    Args:
-    Returns:
-
-    """
+def _pitch(note, duration, Fs=SAMPLING_FREQUENCY, volume=0.3):
+    """Produce sine wave that corresponds to given note and duration"""
     # Multiply the amount of samples per second by the duration 
     # and Normalize time such that "Every 1/Fs seconds the next number is read"
     t = np.arange(0, duration, 1/Fs)
-    # Recall simple Harmonic motion sin(wt) where angular frequency(w) = 2*pi*f
-    # sin(wt) = sin(2*pi*note_frequency*t)
+
     f = _adjust_note_frequency(note) if note != "S" else freq[note]
     y = np.sin(2 * np.pi * t * f)
 
+    # Add overtones and undertones
     for i in range(2,17):
         y += pow(2, -i) *  np.sin(2 * np.pi * f * i * t)
         if not i % 2:  
-            y += pow(2, -i) *  np.sin(2 * np.pi * f / (i) * t)  
+            y += pow(2, -i) *  np.sin(2 * np.pi * f / i * t)  
 
     return apply_fade(y * volume)
 
@@ -65,7 +71,7 @@ def _riff(notes, Fs=SAMPLING_FREQUENCY):
 def pad_arr(arr_one, arr_two):
     """combine different sized arrays"""
     padded_arr = None
-    # Add smaller array to larger one
+    # Add smaller array to front of larger array
     if len(arr_one) < len(arr_two):
         arr_two[:len(arr_one)] += arr_one
         padded_arr = arr_two
@@ -78,14 +84,13 @@ def pad_arr(arr_one, arr_two):
 # adding arrs together will produce the sound of the notes playing together
 def _play_chord(multiple_notes, Fs=SAMPLING_FREQUENCY):
     chord = None
-    print(multiple_notes)
     for note,duration in multiple_notes:
         if chord is None:
             chord = _pitch(note, duration, Fs)
         else:
             chord = pad_arr(chord,  _pitch(note, duration, Fs))
 
-    return np.flip(chord) * 0.5
+    return np.flip(chord) * 0.3
 
 def apply_fade(wave, fade_duration=0.01, Fs=SAMPLING_FREQUENCY):
     """Apply a fade In & Out to a wave"""
@@ -108,9 +113,7 @@ def sing(song, Fs=SAMPLING_FREQUENCY):
     sd.wait()
 
 def main():
-    test = [ [('C5', 0.5),('C4', 0.25), ('C3', 0.5)]]
-    sing(funky_town_melody)
-
+    sing(funky_town_song)
    
 if __name__ == "__main__":
     main()
