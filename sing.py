@@ -1,3 +1,5 @@
+"""Play sound given song data such as notes(in pitch notation) and duration for each note"""
+
 import sounddevice as sd
 import numpy as np
 # Samples per second
